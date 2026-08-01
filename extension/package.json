@@ -1,0 +1,20 @@
+{
+  "name": "@saveitup/extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.config.mjs"
+  },
+  "devDependencies": {
+    "@mozilla/readability": "^0.5.0",
+    "@types/chrome": "^0.0.287",
+    "@types/turndown": "^5.0.5",
+    "dotenv": "^16.6.1",
+    "marked": "^13.0.0",
+    "turndown": "^7.2.0"
+  },
+  "dependencies": {
+    "@clerk/chrome-extension": "^3.1.45"
+  }
+}

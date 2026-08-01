@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "saveitup": {
+      "command": "node",
+      "args": ["D:/projects/saveitup/mcp-server/dist/index.js"],
+      "env": {
+        "SAVEITUP_API_BASE": "http://localhost:3001",
+        "SAVEITUP_API_KEY": "replace-with-your-saveitup-api-key"
+      }
+    }
+  }
+}

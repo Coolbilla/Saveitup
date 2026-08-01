@@ -1,0 +1,17 @@
+{
+  "name": "saveitup",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "shared",
+    "extension",
+    "server",
+    "mcp-server"
+  ],
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.10.0"
+  }
+}

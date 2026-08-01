@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body class="signed-out">
+  <div id="toast" class="toast view-hidden"></div>
+
+  <section id="signed-out-view" class="view-hidden">
+    <div class="settings-card">
+      <p>Sign in to use SaveItUp.</p>
+      <button id="signInBtn" type="button">Sign in</button>
+    </div>
+  </section>
+
+  <div id="app-shell">
+  <header class="app-header">
+    <div class="app-brand">
+      <span class="app-logo">⬡</span>
+      <span class="app-name">SaveItUp</span>
+      <span class="app-tagline">Archive</span>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="browse">Browse</button>
+      <button class="tab-btn" data-tab="tabs">Tabs</button>
+      <button class="tab-btn" data-tab="chat">Chat</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </div>
+  </header>
+
+  <section id="browse-tab" class="tab-panel active">
+    <div class="action-row">
+      <button id="addMenuBtn" class="picker-btn">
+        <span class="icon-slot" data-icon="plus"></span> Add
+      </button>
+    </div>
+    <div id="addMenu" class="export-menu view-hidden">
+      <button id="pickElement" type="button">
+        <span class="icon-slot" data-icon="crosshair"></span> Pick element to save
+      </button>
+      <button id="takeNoteBtn" type="button">
+        <span class="icon-slot" data-icon="note"></span> Take a note
+      </button>
+      <button id="urlToMdBtn" type="button">
+        <span class="icon-slot" data-icon="link"></span> URL to Markdown
+      </button>
+    </div>
+    <div id="noteComposer" class="note-box view-hidden">
+      <label class="note-label"><span class="icon-slot" data-icon="note"></span> New note</label>
+      <textarea id="noteComposerInput" placeholder="Type your note about this page..."></textarea>
+      <div class="note-actions">
+        <button id="noteComposerCancel" class="secondary-btn" type="button">Cancel</button>
+        <button id="noteComposerSave" class="secondary-btn" type="button">Save note</button>
+        <span id="noteComposerStatus" class="note-status"></span>
+      </div>
+    </div>
+    <div id="urlToMdBox" class="note-box view-hidden">
+      <label class="note-label"><span class="icon-slot" data-icon="link"></span> URL to Markdown</label>
+      <input id="urlToMdInput" type="text" placeholder="https://example.com/article" />
+      <div class="note-actions">
+        <button id="urlToMdCancel" class="secondary-btn" type="button">Cancel</button>
+        <button id="urlToMdExtract" class="secondary-btn" type="button">Extract</button>
+        <span id="urlToMdStatus" class="note-status"></span>
+      </div>
+      <div id="urlToMdResult" class="view-hidden">
+        <div class="note-actions">
+          <button id="urlToMdCopy" class="secondary-btn" type="button">
+            <span class="icon-slot" data-icon="copy"></span> Copy markdown
+          </button>
+        </div>
+        <pre id="urlToMdOutput" class="url-md-output"></pre>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="search-field">
+        <span class="icon-slot search-icon" data-icon="search"></span>
+        <input id="search" type="text" placeholder="Search saved pages..." />
+        <button id="clearSearch" class="clear-search-btn view-hidden" aria-label="Clear search">
+          <span class="icon-slot" data-icon="close"></span>
+        </button>
+      </div>
+      <button id="filterMenuBtn" class="icon-btn" aria-label="Filter &amp; group" title="Filter &amp; group">
+        <span class="icon-slot" data-icon="filter"></span>
+      </button>
+      <button id="selectModeBtn" class="icon-btn" aria-label="Select multiple" title="Select multiple">
+        <span class="icon-slot" data-icon="checkSquare"></span>
+      </button>
+      <button id="exportBtn" class="icon-btn" aria-label="Export" title="Export">
+        <span class="icon-slot" data-icon="download"></span>
+      </button>
+    </div>
+    <div id="filterMenu" class="export-menu view-hidden">
+      <label class="filter-menu-label">Group by</label>
+      <select id="groupMode">
+        <option value="url">Group by page</option>
+        <option value="domain">Group by site</option>
+        <option value="folder">Group by folder</option>
+        <option value="flat">Flat (newest first)</option>
+      </select>
+      <label class="filter-menu-label">Folder</label>
+      <select id="folderActions">
+        <option value="">Folders...</option>
+        <option value="__new__">+ New folder...</option>
+      </select>
+    </div>
+    <div id="exportMenu" class="export-menu view-hidden">
+      <button id="exportMarkdownBtn" type="button">Export as Markdown</button>
+      <button id="exportJsonBtn" type="button">Export as JSON</button>
+    </div>
+    <div id="resultsCount" class="results-count"></div>
+    <div id="list" class="list"></div>
+  </section>
+
+  <div id="bulkBar" class="bulk-bar view-hidden">
+    <span id="bulkCount" class="bulk-count"></span>
+    <div class="tag-add bulk-folder-move">
+      <select id="bulkFolderSelect">
+        <option value="">Move to folder...</option>
+      </select>
+      <button id="bulkMoveBtn" type="button">Move</button>
+    </div>
+    <button id="bulkDeleteBtn" class="danger-btn" type="button">
+      <span class="icon-slot" data-icon="trash"></span> Delete
+    </button>
+    <button id="bulkCancelBtn" class="secondary-btn" type="button">Cancel</button>
+  </div>
+
+  <section id="tabs-tab" class="tab-panel">
+    <div class="tabs-toolbar">
+      <button id="tabsToggleAllBtn" class="secondary-btn" type="button">Select all</button>
+      <button id="tabsRefreshBtn" class="icon-btn" aria-label="Refresh" title="Refresh open tabs">
+        <span class="icon-slot" data-icon="tabsIcon"></span>
+      </button>
+    </div>
+    <div id="tabsList" class="tabs-list"></div>
+    <div class="tabs-save-row">
+      <button id="saveTabsBtn" type="button">
+        <span class="icon-slot" data-icon="link"></span> Save tabs &amp; get link
+      </button>
+      <span id="tabsSaveStatus" class="note-status"></span>
+    </div>
+    <div id="tabsShareRow" class="tabs-share-row view-hidden">
+      <input id="tabsShareLink" type="text" readonly />
+      <button id="tabsCopyLinkBtn" class="secondary-btn" type="button">Copy</button>
+    </div>
+  </section>
+
+  <section id="chat-tab" class="tab-panel">
+    <div id="chatMessages" class="chat-messages"></div>
+    <div class="chat-include-row">
+      <label class="chat-include-label">
+        <input id="chatIncludeCurrentTab" type="checkbox" checked />
+        Include current tab
+      </label>
+    </div>
+    <div class="chat-input-row">
+      <textarea id="chatInput" placeholder="Ask about your saved pages or this tab..."></textarea>
+      <button id="chatSendBtn" type="button" class="picker-btn">Send</button>
+    </div>
+  </section>
+
+  <section id="settings-tab" class="tab-panel">
+    <div class="settings-card">
+      <div class="account-row">
+        <span id="accountEmail"></span>
+        <button id="signOutBtn" type="button" class="secondary-btn">Sign out</button>
+      </div>
+      <details class="settings-disclosure">
+        <summary>Connection settings</summary>
+        <label>Backend URL<input id="apiBase" type="text" placeholder="http://localhost:3001" /></label>
+      </details>
+      <div class="settings-actions">
+        <button id="testConnection" class="secondary-btn" type="button">Test connection</button>
+        <button id="saveSettings" type="button">Save settings</button>
+      </div>
+      <p id="status"></p>
+    </div>
+
+    <div class="settings-card" id="aiRoleSettings">
+      <details class="settings-disclosure" data-role="cleanup">
+        <summary>Cleanup AI</summary>
+        <label>Provider<select class="role-provider"></select></label>
+        <label>Model<input class="role-model" type="text" placeholder="(use provider default)" /></label>
+        <p class="role-hint"></p>
+        <button class="secondary-btn role-save" type="button">Save</button>
+      </details>
+      <details class="settings-disclosure" data-role="categorize">
+        <summary>Categorize AI</summary>
+        <label>Provider<select class="role-provider"></select></label>
+        <label>Model<input class="role-model" type="text" placeholder="(use provider default)" /></label>
+        <p class="role-hint"></p>
+        <button class="secondary-btn role-save" type="button">Save</button>
+      </details>
+      <details class="settings-disclosure" data-role="summarize">
+        <summary>Summarize AI</summary>
+        <label>Provider<select class="role-provider"></select></label>
+        <label>Model<input class="role-model" type="text" placeholder="(use provider default)" /></label>
+        <p class="role-hint"></p>
+        <button class="secondary-btn role-save" type="button">Save</button>
+      </details>
+      <details class="settings-disclosure" data-role="chat">
+        <summary>Chat AI</summary>
+        <label>Provider<select class="role-provider"></select></label>
+        <label>Model<input class="role-model" type="text" placeholder="(use provider default)" /></label>
+        <p class="role-hint"></p>
+        <button class="secondary-btn role-save" type="button">Save</button>
+      </details>
+      <details class="settings-disclosure" data-role="embeddings">
+        <summary>Embeddings AI</summary>
+        <label>Provider<select class="role-provider"></select></label>
+        <label>Model<input class="role-model" type="text" placeholder="(use provider default)" /></label>
+        <p class="role-hint"></p>
+        <button class="secondary-btn role-save" type="button">Save</button>
+      </details>
+    </div>
+
+    <div class="settings-card">
+      <details class="settings-disclosure" id="aiErrorsDisclosure">
+        <summary><span class="icon-slot" data-icon="alertCircle"></span> AI errors</summary>
+        <div id="aiErrorsList" class="ai-errors-list"></div>
+        <button id="clearAiErrors" class="secondary-btn" type="button">Clear</button>
+      </details>
+    </div>
+  </section>
+
+  <section id="detail-view" class="view-hidden">
+    <div class="detail-toolbar">
+      <button id="backBtn" class="link-btn">
+        <span class="icon-slot" data-icon="arrowLeft"></span> Back
+      </button>
+      <button id="openInNewTabBtn" class="link-btn" aria-label="Open in new tab" title="Open in new tab">
+        <span class="icon-slot" data-icon="externalLink"></span>
+      </button>
+    </div>
+    <div id="detail-embed"></div>
+    <div id="detail-badge" class="capture-badge"></div>
+    <h2 id="detail-title-row" class="detail-title-row">
+      <img id="detail-favicon" class="site-favicon" alt="" />
+      <span id="detail-title"></span>
+    </h2>
+    <div id="detail-meta" class="item-meta"></div>
+    <div id="detail-folder"></div>
+    <div id="detail-note" class="note-box">
+      <label class="note-label"><span class="icon-slot" data-icon="note"></span> Note</label>
+      <textarea id="detail-note-input" placeholder="Add a note..."></textarea>
+      <div class="note-actions">
+        <button id="saveNoteBtn" class="secondary-btn" type="button">Save note</button>
+        <span id="noteStatus" class="note-status"></span>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <button id="openOriginalBtn" class="secondary-btn">
+        <span class="icon-slot" data-icon="externalLink"></span> Open original page
+      </button>
+      <button id="contentToggleBtn" class="secondary-btn">
+        <span class="icon-slot" data-icon="note"></span> Original
+      </button>
+      <button id="pinBtn" class="secondary-btn">
+        <span class="icon-slot" data-icon="star"></span> Pin
+      </button>
+      <button id="deleteBtn" class="danger-btn">
+        <span class="icon-slot" data-icon="trash"></span> Delete
+      </button>
+      <button id="detailMoreBtn" class="icon-btn" aria-label="More actions" title="More actions">
+        <span class="icon-slot" data-icon="moreHorizontal"></span>
+      </button>
+    </div>
+    <div id="detailMoreMenu" class="export-menu view-hidden">
+      <button id="copyMarkdownBtn" type="button">
+        <span class="icon-slot" data-icon="copy"></span> Copy markdown
+      </button>
+      <button id="transformBtn" type="button">
+        <span class="icon-slot" data-icon="sparkles"></span> Transform
+      </button>
+      <button id="recleanBtn" type="button">
+        <span class="icon-slot" data-icon="refresh"></span> Re-clean
+      </button>
+    </div>
+    <div id="recleanStatus" class="reclean-status view-hidden"></div>
+    <div id="transformBox" class="note-box view-hidden">
+      <label class="note-label"><span class="icon-slot" data-icon="sparkles"></span> Transform</label>
+      <textarea id="transformInput" placeholder="e.g. Summarize as bullet points"></textarea>
+      <div class="note-actions">
+        <button id="transformCancel" class="secondary-btn" type="button">Cancel</button>
+        <button id="transformRun" class="secondary-btn" type="button">Run</button>
+        <span id="transformStatus" class="note-status"></span>
+      </div>
+      <div id="transformResult" class="view-hidden">
+        <div class="note-actions">
+          <button id="transformCopy" class="secondary-btn" type="button">
+            <span class="icon-slot" data-icon="copy"></span> Copy result
+          </button>
+          <button id="transformDismiss" class="secondary-btn" type="button">Dismiss</button>
+        </div>
+        <div id="transformOutput" class="transform-output"></div>
+      </div>
+    </div>
+    <div id="detail-body"></div>
+  </section>
+  </div>
+
+  <script src="sidepanel.js" type="module"></script>
+</body>
+</html>

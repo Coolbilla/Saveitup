@@ -1,0 +1,7 @@
+{
+  "name": "@saveitup/shared",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/types.ts"
+}

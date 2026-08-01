@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: saveitup-server
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build --workspace=server
+    startCommand: node server/dist/index.js
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: SAVEITUP_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
