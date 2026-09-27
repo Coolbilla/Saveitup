@@ -1,0 +1,19 @@
+name = "saveitup"
+main = "src/worker.ts"
+compatibility_date = "2026-01-01"
+# nodejs_compat provides node:crypto/Buffer etc.; populate_process_env exposes vars and secrets
+# as process.env, which the server code already reads.
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
+
+# The server's route files `import { Router } from "express"`. On Workers that resolves to a tiny shim.
+[alias]
+"express" = "./src/express-shim.ts"
+
+[vars]
+SUMMARY_PROVIDER = "openrouter"
+CATEGORIZE_PROVIDER = "openrouter"
+CLEANUP_PROVIDER = "openrouter"
+EMBEDDING_PROVIDER = "openrouter"
+
+# Secrets (set with `npm run secrets`, never committed):
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SAVEITUP_API_KEY, OPENROUTER_API_KEY

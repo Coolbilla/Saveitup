@@ -1,10 +1,11 @@
 import { getRoleConfig, recordAIError } from "./ai-config.js";
+import { timedFetch } from "./providers.js";
 
 const MAX_INPUT_CHARS = 8000;
 
 async function callOpenAIEmbedding(text: string, apiKey: string, modelOverride?: string): Promise<number[]> {
   const model = modelOverride || process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
-  const res = await fetch("https://api.openai.com/v1/embeddings", {
+  const res = await timedFetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -22,7 +23,7 @@ async function callOpenAIEmbedding(text: string, apiKey: string, modelOverride?:
 async function callNvidiaEmbedding(text: string, apiKey: string, modelOverride?: string): Promise<number[]> {
   const baseUrl = process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";
   const model = modelOverride || process.env.NVIDIA_EMBEDDING_MODEL || "baai/bge-m3";
-  const res = await fetch(`${baseUrl}/embeddings`, {
+  const res = await timedFetch(`${baseUrl}/embeddings`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -37,9 +38,26 @@ async function callNvidiaEmbedding(text: string, apiKey: string, modelOverride?:
   return embedding;
 }
 
+async function callOpenRouterEmbedding(text: string, apiKey: string, modelOverride?: string): Promise<number[]> {
+  const model = modelOverride || process.env.OPENROUTER_EMBEDDING_MODEL || "nvidia/llama-nemotron-embed-vl-1b-v2:free";
+  const res = await timedFetch("https://openrouter.ai/api/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({ model, input: text })
+  });
+  if (!res.ok) throw new Error(`OpenRouter embedding request failed: ${res.status} ${await res.text()}`);
+  const data = (await res.json()) as any;
+  const embedding = data.data?.[0]?.embedding;
+  if (!embedding) throw new Error("OpenRouter embedding response had no data");
+  return embedding;
+}
+
 async function callGeminiEmbedding(text: string, apiKey: string, modelOverride?: string): Promise<number[]> {
   const model = modelOverride || process.env.GEMINI_EMBEDDING_MODEL || "text-embedding-004";
-  const res = await fetch(
+  const res = await timedFetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${apiKey}`,
     {
       method: "POST",
@@ -71,6 +89,9 @@ export async function generateEmbedding(userId: string, text: string): Promise<n
     }
     if (pair.provider === "nvidia" && process.env.NVIDIA_API_KEY) {
       return await callNvidiaEmbedding(input, process.env.NVIDIA_API_KEY, pair.model || undefined);
+    }
+    if (pair.provider === "openrouter" && process.env.OPENROUTER_API_KEY) {
+      return await callOpenRouterEmbedding(input, process.env.OPENROUTER_API_KEY, pair.model || undefined);
     }
   } catch (err) {
     console.error("[saveitup] embedding generation failed", err);

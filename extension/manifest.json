@@ -3,7 +3,7 @@
   "name": "SaveItUp",
   "version": "0.1.0",
   "description": "Right-click to save any page, with description/transcript capture on YouTube/Instagram/X/LinkedIn/Reddit.",
-  "permissions": ["contextMenus", "storage", "activeTab", "tabs", "scripting", "sidePanel", "cookies", "offscreen"],
+  "permissions": ["contextMenus", "storage", "activeTab", "tabs", "scripting", "sidePanel", "cookies", "alarms", "bookmarks"],
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://www.instagram.com/*",
@@ -11,8 +11,7 @@
     "https://twitter.com/*",
     "https://www.linkedin.com/*",
     "https://www.reddit.com/*",
-    "https://old.reddit.com/*",
-    "https://real-lamb-85.clerk.accounts.dev/*"
+    "https://old.reddit.com/*"
   ],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "background": {
@@ -58,6 +57,10 @@
     "toggle-sidepanel": {
       "suggested_key": { "default": "Alt+B" },
       "description": "Open SaveItUp sidepanel"
+    },
+    "save-current-page": {
+      "suggested_key": { "default": "Alt+S" },
+      "description": "Save the current page to SaveItUp"
     }
   }
 }

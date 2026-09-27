@@ -5,6 +5,10 @@ import { getUserId } from "../lib/request-context.js";
 export const tabSessionsPublicRouter = Router();
 export const tabSessionsRouter = Router();
 
+function logError(err: unknown): void {
+  console.error("[saveitup] request failed", err);
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -32,7 +36,8 @@ tabSessionsPublicRouter.get("/tab-sessions/:id", async (req, res) => {
     }
     res.json(session);
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
+    logError(err);
+    res.status(500).json({ error: "internal server error" });
   }
 });
 
@@ -84,7 +89,8 @@ tabSessionsPublicRouter.get("/open/:id", async (req, res) => {
 </body>
 </html>`);
   } catch (err) {
-    res.status(500).send((err as Error).message);
+    logError(err);
+    res.status(500).send("Internal server error.");
   }
 });
 
@@ -103,6 +109,7 @@ tabSessionsRouter.post("/tab-sessions", async (req, res) => {
     const result = await createTabSession(userId, tabs);
     res.status(201).json(result);
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
+    logError(err);
+    res.status(500).json({ error: "internal server error" });
   }
 });

@@ -1,4 +1,5 @@
 import { elementToMarkdown } from "../lib/markdown";
+import { popupColors } from "./popup-theme";
 
 const MIN_SELECTION_CHARS = 3;
 const MAX_SELECTION_CHARS = 300;
@@ -15,10 +16,16 @@ let translateRequestId = 0;
 function removePopup() {
   popup?.remove();
   popup = null;
+  document.removeEventListener("keydown", onPopupKeyDown, true);
+}
+
+function onPopupKeyDown(e: KeyboardEvent) {
+  if (e.key === "Escape") removePopup();
 }
 
 function createPopup(): HTMLDivElement {
   removePopup();
+  const colors = popupColors();
   const card = document.createElement("div");
   card.style.position = "fixed";
   card.style.zIndex = "2147483647";
@@ -27,11 +34,11 @@ function createPopup(): HTMLDivElement {
   card.style.width = "280px";
   card.style.maxHeight = "200px";
   card.style.overflowY = "auto";
-  card.style.background = "#1a1a1e";
-  card.style.color = "#f0f0f2";
-  card.style.border = "1px solid #2a2a30";
+  card.style.background = colors.bg;
+  card.style.color = colors.text;
+  card.style.border = `1px solid ${colors.border}`;
   card.style.borderRadius = "10px";
-  card.style.boxShadow = "0 8px 24px rgba(0,0,0,0.35)";
+  card.style.boxShadow = colors.shadow;
   card.style.padding = "10px 12px";
   card.style.fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif";
   card.style.fontSize = "12.5px";
@@ -44,9 +51,10 @@ function createPopup(): HTMLDivElement {
   closeBtn.style.right = "8px";
   closeBtn.style.border = "none";
   closeBtn.style.background = "transparent";
-  closeBtn.style.color = "#9a9aa2";
+  closeBtn.style.color = colors.muted;
   closeBtn.style.fontSize = "16px";
   closeBtn.style.cursor = "pointer";
+  closeBtn.setAttribute("aria-label", "Close");
   closeBtn.addEventListener("click", removePopup);
   card.appendChild(closeBtn);
 
@@ -61,7 +69,7 @@ function createPopup(): HTMLDivElement {
   label.textContent = "EXPLAIN";
   label.style.fontSize = "10.5px";
   label.style.fontWeight = "700";
-  label.style.color = "#9a9aa2";
+  label.style.color = colors.muted;
   label.style.textTransform = "uppercase";
   label.style.letterSpacing = "0.4px";
   labelRow.appendChild(label);
@@ -69,9 +77,9 @@ function createPopup(): HTMLDivElement {
   const translateBtn = document.createElement("button");
   translateBtn.textContent = "Translate";
   translateBtn.className = "saveitup-explain-translate-btn";
-  translateBtn.style.border = "1px solid #2a2a30";
+  translateBtn.style.border = `1px solid ${colors.border}`;
   translateBtn.style.background = "transparent";
-  translateBtn.style.color = "#c8c8cf";
+  translateBtn.style.color = colors.muted;
   translateBtn.style.fontSize = "10.5px";
   translateBtn.style.borderRadius = "5px";
   translateBtn.style.padding = "2px 7px";
@@ -90,12 +98,13 @@ function createPopup(): HTMLDivElement {
   translationBody.className = "saveitup-explain-translation";
   translationBody.style.marginTop = "8px";
   translationBody.style.paddingTop = "8px";
-  translationBody.style.borderTop = "1px solid #2a2a30";
+  translationBody.style.borderTop = `1px solid ${colors.border}`;
   translationBody.style.display = "none";
   card.appendChild(translationBody);
 
   document.body.appendChild(card);
   popup = card;
+  document.addEventListener("keydown", onPopupKeyDown, true);
   return card;
 }
 

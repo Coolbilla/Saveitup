@@ -7,4 +7,9 @@ const server = new McpServer({ name: "saveitup", version: "0.1.0" });
 registerTools(server);
 
 const transport = new StdioServerTransport();
-await server.connect(transport);
+try {
+  await server.connect(transport);
+} catch (err) {
+  console.error("[saveitup-mcp] failed to start:", err instanceof Error ? err.message : err);
+  process.exit(1);
+}

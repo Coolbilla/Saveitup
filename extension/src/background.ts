@@ -1,5 +1,43 @@
-import { savePage, listPagesByUrl, explainSelection, translateSelection } from "./lib/api-client";
-import { domainOf, matchSiteCapture } from "./lib/site-capture";
+import { saveOrQueue, listPagesByUrl, explainSelection, translateSelection, retryQueuedSaves } from "./lib/api-client";
+import { domainOf, matchSiteCapture, mergeSiteCapture, type SiteCaptureResult } from "./lib/site-capture";
+import { isSyncEnabled, pushTabs } from "./lib/device-sync";
+
+const RETRY_QUEUE_ALARM = "saveitup-retry-queue";
+chrome.alarms.create(RETRY_QUEUE_ALARM, { periodInMinutes: 2 });
+// Tab sync (opt-in per device): push this device's open tabs every minute, and shortly after any tab change.
+const DEVICE_SYNC_ALARM = "saveitup-device-sync";
+chrome.alarms.create(DEVICE_SYNC_ALARM, { periodInMinutes: 1 });
+let syncTimer: ReturnType<typeof setTimeout> | undefined;
+function scheduleTabPush() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    try {
+      if (await isSyncEnabled()) await pushTabs();
+    } catch (err) {
+      console.warn("[SaveItUp] tab sync failed", err);
+    }
+  }, 5000);
+}
+chrome.tabs.onCreated.addListener(scheduleTabPush);
+chrome.tabs.onRemoved.addListener(scheduleTabPush);
+chrome.tabs.onUpdated.addListener((_id, info) => {
+  if (info.url || info.title || info.status === "complete") scheduleTabPush();
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === DEVICE_SYNC_ALARM) {
+    isSyncEnabled().then((on) => (on ? pushTabs() : 0)).catch((err) => console.warn("[SaveItUp] tab sync failed", err));
+    return;
+  }
+  if (alarm.name !== RETRY_QUEUE_ALARM) return;
+  retryQueuedSaves()
+    .then(({ succeeded }) => {
+      if (succeeded > 0) {
+        chrome.runtime.sendMessage({ type: "saveitup-queue-synced", succeeded }).catch(() => {});
+      }
+    })
+    .catch((err) => console.error("[SaveItUp] queue retry failed", err));
+});
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -29,10 +67,58 @@ chrome.commands.onCommand.addListener((command, tab) => {
   if (command === "toggle-sidepanel" && tab?.windowId !== undefined) {
     chrome.sidePanel.open({ windowId: tab.windowId });
   }
+  if (command === "save-current-page" && tab?.id && tab.url) {
+    saveCurrentPage(tab.id, tab.url).catch((err) => console.error("[SaveItUp] save failed", err));
+  }
 });
 
-function notifySidepanel(duplicateCount = 0, tempId?: string) {
-  chrome.runtime.sendMessage({ type: "saveitup-page-saved", duplicateCount, tempId }).catch(() => {
+// Plain "save this page" path (no highlight, no note) — shared by the keyboard
+// shortcut and the "Save this page" context-menu item.
+async function saveCurrentPage(tabId: number, url: string): Promise<void> {
+  const domain = domainOf(url);
+  let tempId: string | undefined;
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["content/generic-capture.js"] });
+    const [{ result: generic }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => (window as any).__saveItUpCaptureGeneric()
+    });
+
+    tempId = crypto.randomUUID();
+    notifySaving(tempId, { title: generic.title, domain });
+
+    let site: SiteCaptureResult | null = null;
+    const siteCapture = matchSiteCapture(domain);
+    if (siteCapture) {
+      await chrome.scripting.executeScript({ target: { tabId }, files: [siteCapture.file] });
+      const [{ result: siteResult }] = await chrome.scripting.executeScript({ target: { tabId }, func: siteCapture.func });
+      site = (siteResult as SiteCaptureResult) ?? null;
+    }
+    const merged = mergeSiteCapture(generic, site);
+
+    const result = await saveOrQueue({
+      url: generic.url,
+      title: merged.title,
+      domain,
+      pageContent: merged.pageContent,
+      description: merged.description,
+      transcript: merged.transcript,
+      format: merged.format
+    });
+    if (result.queued) {
+      notifyQueued(tempId);
+    } else {
+      console.log("[SaveItUp] saved", generic.url);
+      notifySidepanel(result.duplicateCount, tempId, result.id);
+    }
+  } catch (err) {
+    console.error("[SaveItUp] save failed", err);
+    if (tempId) notifySaveFailed(tempId, (err as Error).message);
+  }
+}
+
+function notifySidepanel(duplicateCount = 0, tempId?: string, pageId?: number) {
+  chrome.runtime.sendMessage({ type: "saveitup-page-saved", duplicateCount, tempId, pageId }).catch(() => {
     // sidepanel not open; nothing to notify
   });
 }
@@ -45,6 +131,12 @@ function notifySaving(tempId: string, info: { title: string; domain: string }) {
 
 function notifySaveFailed(tempId: string, error: string) {
   chrome.runtime.sendMessage({ type: "saveitup-page-save-failed", tempId, error }).catch(() => {
+    // sidepanel not open; nothing to notify
+  });
+}
+
+function notifyQueued(tempId: string) {
+  chrome.runtime.sendMessage({ type: "saveitup-page-queued", tempId }).catch(() => {
     // sidepanel not open; nothing to notify
   });
 }
@@ -86,16 +178,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     const tempId = crypto.randomUUID();
     notifySaving(tempId, { title, domain: domainOf(url) });
-    savePage({
+    saveOrQueue({
       url,
       title,
       domain: domainOf(url),
       pageContent: markdown,
       elementSelector
     })
-      .then(({ duplicateCount }) => {
-        console.log("[SaveItUp] saved picked element", url);
-        notifySidepanel(duplicateCount, tempId);
+      .then((result) => {
+        if (result.queued) {
+          notifyQueued(tempId);
+        } else {
+          console.log("[SaveItUp] saved picked element", url);
+          notifySidepanel(result.duplicateCount, tempId, result.id);
+        }
         sendResponse({ ok: true });
       })
       .catch((err) => {
@@ -106,7 +202,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message?.type === "saveitup-activate-picker" && message.tabId) {
-    activatePickerOnTab(message.tabId).catch((err) => console.error("[SaveItUp] picker failed", err));
+    activatePickerOnTab(message.tabId)
+      .then(() => sendResponse({ ok: true }))
+      .catch((err) => {
+        console.error("[SaveItUp] picker failed", err);
+        sendResponse({ ok: false, error: (err as Error).message });
+      });
+    return true;
   }
   if (message?.type === "saveitup-check-notes" && message.url) {
     listPagesByUrl(message.url)
@@ -128,7 +230,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message?.type === "saveitup-open-save" && message.id) {
     const base = chrome.runtime.getURL("sidepanel/sidepanel.html");
-    chrome.tabs.create({ url: `${base}?id=${message.id}` });
+    chrome.tabs.create({ url: `${base}?id=${message.id}` }).catch((err) => {
+      console.error("[SaveItUp] failed to open save tab", err);
+    });
   }
   if (message?.type === "saveitup-open-tab-session" && message.sessionId && message.apiOrigin) {
     (async () => {
@@ -171,14 +275,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
         tempId = crypto.randomUUID();
         notifySaving(tempId, { title: generic.title, domain: domainOf(generic.url) });
-        const { duplicateCount } = await savePage({
+        const result = await saveOrQueue({
           url: generic.url,
           title: generic.title,
           domain: domainOf(generic.url),
           pageContent: generic.pageContent,
           noteText
         });
-        notifySidepanel(duplicateCount, tempId);
+        if (result.queued) {
+          notifyQueued(tempId);
+        } else {
+          notifySidepanel(result.duplicateCount, tempId, result.id);
+        }
         sendResponse({ ok: true });
       } catch (err) {
         if (tempId) notifySaveFailed(tempId, (err as Error).message);
@@ -194,6 +302,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (info.menuItemId === "saveitup-pick-element") {
     await activatePickerOnTab(tab.id);
+    return;
+  }
+
+  if (info.menuItemId === "saveitup-save-page") {
+    await saveCurrentPage(tab.id, tab.url);
     return;
   }
 
@@ -245,8 +358,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     tempId = crypto.randomUUID();
     notifySaving(tempId, { title: generic.title, domain });
 
-    let description: string | null = null;
-    let transcript: string | null = null;
+    let site: SiteCaptureResult | null = null;
     const siteCapture = matchSiteCapture(domain);
     if (siteCapture) {
       await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: [siteCapture.file] });
@@ -254,26 +366,31 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         target: { tabId: tab.id },
         func: siteCapture.func
       });
-      description = siteResult?.description ?? null;
-      transcript = siteResult?.transcript ?? null;
+      site = (siteResult as SiteCaptureResult) ?? null;
     }
+    const merged = mergeSiteCapture(generic, site);
 
     const payload = {
       url: generic.url,
-      title: generic.title,
+      title: merged.title,
       domain,
-      pageContent: generic.pageContent,
-      description,
-      transcript,
+      pageContent: merged.pageContent,
+      description: merged.description,
+      transcript: merged.transcript,
+      format: merged.format,
       highlightText: isHighlightSave ? info.selectionText ?? null : null,
       highlightContext,
       elementSelector,
       noteText
     };
 
-    const { duplicateCount } = await savePage(payload);
-    console.log("[SaveItUp] saved", payload.url);
-    notifySidepanel(duplicateCount, tempId);
+    const result = await saveOrQueue(payload);
+    if (result.queued) {
+      notifyQueued(tempId);
+    } else {
+      console.log("[SaveItUp] saved", payload.url);
+      notifySidepanel(result.duplicateCount, tempId, result.id);
+    }
   } catch (err) {
     console.error("[SaveItUp] save failed", err);
     if (typeof tempId === "string") notifySaveFailed(tempId, (err as Error).message);

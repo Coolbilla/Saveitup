@@ -14,5 +14,17 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      - key: CLERK_SECRET_KEY
+      # AI used by the save pipeline (cleanup / categorize / embeddings) and /url-to-markdown
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: SUMMARY_PROVIDER
+        value: openrouter
+      - key: CATEGORIZE_PROVIDER
+        value: openrouter
+      - key: CLEANUP_PROVIDER
+        value: openrouter
+      - key: EMBEDDING_PROVIDER
+        value: openrouter
+      # Comma-separated web origins allowed to call the API (e.g. the mobile web app). Empty = allow all.
+      - key: ALLOWED_ORIGINS
         sync: false

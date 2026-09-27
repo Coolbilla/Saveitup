@@ -1,4 +1,5 @@
 import { findElementContainingText } from "../lib/text-search";
+import { popupColors } from "./popup-theme";
 
 interface NoteMatch {
   id: number;
@@ -21,16 +22,17 @@ function reposition(badge: HTMLDivElement, el: Element) {
 function showPopover(anchor: HTMLElement, match: NoteMatch) {
   document.querySelectorAll("[data-saveitup-popover]").forEach((p) => p.remove());
 
+  const colors = popupColors();
   const rect = anchor.getBoundingClientRect();
   const card = document.createElement("div");
   card.dataset.saveitupPopover = "true";
   card.style.position = "fixed";
   card.style.zIndex = "2147483647";
   card.style.width = "260px";
-  card.style.background = "#fff";
-  card.style.border = "1px solid #e2e2e2";
+  card.style.background = colors.bg;
+  card.style.border = `1px solid ${colors.border}`;
   card.style.borderRadius = "10px";
-  card.style.boxShadow = "0 8px 24px rgba(0,0,0,0.18)";
+  card.style.boxShadow = colors.shadow;
   card.style.padding = "10px";
   card.style.fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif";
 
@@ -43,7 +45,7 @@ function showPopover(anchor: HTMLElement, match: NoteMatch) {
   label.textContent = "Note";
   label.style.fontSize = "11px";
   label.style.fontWeight = "700";
-  label.style.color = "#888";
+  label.style.color = colors.muted;
   label.style.textTransform = "uppercase";
   label.style.letterSpacing = "0.4px";
   label.style.marginBottom = "6px";
@@ -52,7 +54,7 @@ function showPopover(anchor: HTMLElement, match: NoteMatch) {
   const text = document.createElement("div");
   text.textContent = match.noteText;
   text.style.fontSize = "13px";
-  text.style.color = "#222";
+  text.style.color = colors.text;
   text.style.whiteSpace = "pre-wrap";
   text.style.maxHeight = "140px";
   text.style.overflowY = "auto";
@@ -69,7 +71,7 @@ function showPopover(anchor: HTMLElement, match: NoteMatch) {
   openLink.href = "#";
   openLink.style.fontSize = "12px";
   openLink.style.fontWeight = "600";
-  openLink.style.color = "#4f46e5";
+  openLink.style.color = colors.accent;
   openLink.style.textDecoration = "none";
   openLink.style.cursor = "pointer";
   openLink.addEventListener("click", (e) => {
@@ -81,9 +83,10 @@ function showPopover(anchor: HTMLElement, match: NoteMatch) {
   closeBtn.textContent = "✕";
   closeBtn.style.border = "none";
   closeBtn.style.background = "transparent";
-  closeBtn.style.color = "#888";
+  closeBtn.style.color = colors.muted;
   closeBtn.style.cursor = "pointer";
   closeBtn.style.fontSize = "13px";
+  closeBtn.setAttribute("aria-label", "Close");
   closeBtn.addEventListener("click", () => card.remove());
 
   row.appendChild(openLink);
@@ -103,6 +106,7 @@ function showPopover(anchor: HTMLElement, match: NoteMatch) {
 function injectBadge(el: Element, match: NoteMatch) {
   if (document.querySelector(`[data-saveitup-badge="${match.id}"]`)) return;
 
+  const colors = popupColors();
   const badge = document.createElement("div");
   badge.dataset.saveitupBadge = String(match.id);
   badge.style.position = "fixed";
@@ -110,8 +114,8 @@ function injectBadge(el: Element, match: NoteMatch) {
   badge.style.width = "22px";
   badge.style.height = "22px";
   badge.style.borderRadius = "50%";
-  badge.style.background = "#4f46e5";
-  badge.style.color = "#fff";
+  badge.style.background = colors.accent;
+  badge.style.color = colors.accentText;
   badge.style.display = "flex";
   badge.style.alignItems = "center";
   badge.style.justifyContent = "center";
@@ -149,27 +153,16 @@ chrome.runtime.sendMessage({ type: "saveitup-check-notes", url: location.href },
     // (an nth-of-type path) can resolve to a totally different element on
     // SPA-heavy pages that re-render their DOM between visits (e.g. YouTube).
     let el: Element | null = null;
-    console.debug("[saveitup] matching note", match.id, "highlightText:", JSON.stringify(match.highlightText));
     if (match.highlightText) {
       el = findElementContainingText(match.highlightText);
-      console.debug("[saveitup] text search result:", el);
-    } else {
-      console.debug("[saveitup] no highlightText, skipping text search");
     }
     if (!el && match.elementSelector) {
       try {
         el = document.querySelector(match.elementSelector);
-        console.debug("[saveitup] selector fallback", match.elementSelector, "->", el);
       } catch {
-        console.debug("[saveitup] selector fallback threw, invalid/stale selector", match.elementSelector);
+        // stale/invalid selector from a page that's since changed structure
       }
     }
-    if (el) {
-      const rect = el.getBoundingClientRect();
-      console.debug("[saveitup] found element, rect:", rect, "el:", el);
-      injectBadge(el, match);
-    } else {
-      console.debug("[saveitup] no element found for note", match.id);
-    }
+    if (el) injectBadge(el, match);
   }
 });

@@ -6,7 +6,9 @@
     "shared",
     "extension",
     "server",
-    "mcp-server"
+    "mcp-server",
+    "web",
+    "worker"
   ],
   "devDependencies": {
     "typescript": "^5.7.0",

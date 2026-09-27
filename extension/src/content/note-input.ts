@@ -1,5 +1,8 @@
+import { popupColors } from "./popup-theme";
+
 function showNoteInput(): Promise<string | null> {
   return new Promise((resolve) => {
+    const colors = popupColors();
     let anchorRect: DOMRect | null = null;
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
@@ -11,10 +14,10 @@ function showNoteInput(): Promise<string | null> {
     card.style.position = "fixed";
     card.style.zIndex = "2147483647";
     card.style.width = "280px";
-    card.style.background = "#fff";
-    card.style.border = "1px solid #e2e2e2";
+    card.style.background = colors.bg;
+    card.style.border = `1px solid ${colors.border}`;
     card.style.borderRadius = "10px";
-    card.style.boxShadow = "0 8px 24px rgba(0,0,0,0.18)";
+    card.style.boxShadow = colors.shadow;
     card.style.padding = "10px";
     card.style.fontFamily = "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif";
 
@@ -33,7 +36,7 @@ function showNoteInput(): Promise<string | null> {
     label.textContent = "Note";
     label.style.fontSize = "11px";
     label.style.fontWeight = "700";
-    label.style.color = "#888";
+    label.style.color = colors.muted;
     label.style.textTransform = "uppercase";
     label.style.letterSpacing = "0.4px";
     label.style.marginBottom = "6px";
@@ -48,7 +51,9 @@ function showNoteInput(): Promise<string | null> {
     textarea.style.fontSize = "13px";
     textarea.style.fontFamily = "inherit";
     textarea.style.padding = "6px 8px";
-    textarea.style.border = "1px solid #d7dae3";
+    textarea.style.background = colors.inputBg;
+    textarea.style.color = colors.text;
+    textarea.style.border = `1px solid ${colors.inputBorder}`;
     textarea.style.borderRadius = "6px";
     textarea.style.outline = "none";
     card.appendChild(textarea);
@@ -61,9 +66,9 @@ function showNoteInput(): Promise<string | null> {
 
     const cancelBtn = document.createElement("button");
     cancelBtn.textContent = "Cancel";
-    cancelBtn.style.border = "none";
-    cancelBtn.style.background = "#f1f2f6";
-    cancelBtn.style.color = "#555";
+    cancelBtn.style.border = `1px solid ${colors.border}`;
+    cancelBtn.style.background = "transparent";
+    cancelBtn.style.color = colors.muted;
     cancelBtn.style.fontSize = "12px";
     cancelBtn.style.fontWeight = "600";
     cancelBtn.style.padding = "6px 12px";
@@ -73,8 +78,8 @@ function showNoteInput(): Promise<string | null> {
     const saveBtn = document.createElement("button");
     saveBtn.textContent = "Save";
     saveBtn.style.border = "none";
-    saveBtn.style.background = "#4f46e5";
-    saveBtn.style.color = "#fff";
+    saveBtn.style.background = colors.accent;
+    saveBtn.style.color = colors.accentText;
     saveBtn.style.fontSize = "12px";
     saveBtn.style.fontWeight = "600";
     saveBtn.style.padding = "6px 12px";

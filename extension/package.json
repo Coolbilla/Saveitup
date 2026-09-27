@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "node esbuild.config.mjs"
+    "build": "node esbuild.config.mjs",
+    "test": "tsx --test src/lib/ai/providers.test.ts src/lib/device-sync.test.ts"
   },
   "devDependencies": {
     "@mozilla/readability": "^0.5.0",
@@ -15,6 +16,6 @@
     "turndown": "^7.2.0"
   },
   "dependencies": {
-    "@clerk/chrome-extension": "^3.1.45"
+    "@supabase/supabase-js": "^2.116.0"
   }
 }

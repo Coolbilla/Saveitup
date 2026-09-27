@@ -1,6 +1,29 @@
+export interface SiteCaptureResult {
+  description: string | null;
+  transcript: string | null;
+  /** Site-specific capture (YouTube) can replace the generic page text, title and mark its format. */
+  pageContent?: string;
+  title?: string;
+  format?: "youtube-v1";
+}
+
 export interface SiteCapture {
   file: string;
-  func: () => Promise<{ description: string | null; transcript: string | null }>;
+  func: () => Promise<SiteCaptureResult>;
+}
+
+/** Merges a site capture over the generic capture: a site that supplies its own pageContent/title wins. */
+export function mergeSiteCapture(
+  generic: { title: string; pageContent: string },
+  site: SiteCaptureResult | null | undefined
+) {
+  return {
+    title: site?.title || generic.title,
+    pageContent: site?.pageContent || generic.pageContent,
+    description: site?.description ?? null,
+    transcript: site?.transcript ?? null,
+    format: site?.format
+  };
 }
 
 export const SITE_CAPTURES: Record<string, SiteCapture> = {

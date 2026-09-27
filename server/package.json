@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "check:rls": "tsx scripts/check-rls.ts",
+    "test": "tsx --test src/middleware/rate-limit.test.ts"
   },
   "dependencies": {
-    "@clerk/backend": "^3.8.5",
     "@mozilla/readability": "^0.5.0",
     "@supabase/supabase-js": "^2.46.0",
     "cors": "^2.8.5",

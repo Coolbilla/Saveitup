@@ -1,6 +1,29 @@
 node_modules/
 dist/
+build/
+*.tsbuildinfo
+
+# secrets / local env
 *.env
 .env
 .env.local
-*.tsbuildinfo
+.dev.vars
+
+# build outputs / installers
+*.apk
+*.aab
+
+# Android (extra to web/android/.gitignore, which covers the project itself)
+web/android/.gradle/
+web/android/app/build/
+web/android/build/
+web/android/capacitor-cordova-android-plugins/
+web/android/local.properties
+
+# tool-local caches, not part of the project
+.serena/
+
+# OS
+.DS_Store
+Thumbs.db
+.wrangler/

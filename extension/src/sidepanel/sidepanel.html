@@ -8,25 +8,56 @@
   <div id="toast" class="toast view-hidden"></div>
 
   <section id="signed-out-view" class="view-hidden">
-    <div class="settings-card">
-      <p>Sign in to use SaveItUp.</p>
-      <button id="signInBtn" type="button">Sign in</button>
+    <div class="settings-card auth-card">
+      <div class="auth-brand">
+        <span class="app-logo">⬡</span>
+        <span class="app-name">SaveItUp</span>
+      </div>
+      <h2 id="authTitle">Sign in</h2>
+      <form id="authForm">
+        <label>Email<input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" required /></label>
+        <label>Password<input id="authPassword" type="password" placeholder="At least 6 characters" autocomplete="current-password" required /></label>
+        <p id="authMessage" aria-live="polite" class="view-hidden"></p>
+        <button id="authSubmitBtn" type="submit" class="picker-btn">Sign in</button>
+      </form>
+      <p class="auth-toggle">
+        <button id="authForgotBtn" type="button" class="link-btn">Forgot password?</button>
+      </p>
+      <p class="auth-toggle">
+        <span id="authToggleText">Don't have an account?</span>
+        <button id="authToggleBtn" type="button" class="link-btn">Create one</button>
+      </p>
+    </div>
+  </section>
+
+  <section id="auth-recovery-view" class="view-hidden">
+    <div class="settings-card auth-card">
+      <div class="auth-brand">
+        <span class="app-logo">⬡</span>
+        <span class="app-name">SaveItUp</span>
+      </div>
+      <h2>Set a new password</h2>
+      <form id="authRecoveryForm">
+        <label>New password<input id="authRecoveryPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password" required /></label>
+        <p id="authRecoveryMessage" aria-live="polite" class="view-hidden"></p>
+        <button id="authRecoverySubmitBtn" type="submit" class="picker-btn">Update password</button>
+      </form>
     </div>
   </section>
 
   <div id="app-shell">
+  <nav class="rail" aria-label="Sections">
+    <span class="rail-logo" aria-hidden="true">&#x2B21;</span>
+    <button class="tab-btn rail-btn active" data-tab="browse" title="Browse" aria-label="Browse"><span class="icon-slot" data-icon="inbox"></span></button>
+    <button class="tab-btn rail-btn" data-tab="tabs" title="Tabs" aria-label="Tabs"><span class="icon-slot" data-icon="tabsIcon"></span></button>
+    <button class="tab-btn rail-btn" data-tab="chat" title="Chat" aria-label="Chat"><span class="icon-slot" data-icon="chat"></span></button>
+    <button class="tab-btn rail-btn rail-btn-bottom" data-tab="settings" title="Settings" aria-label="Settings"><span class="icon-slot" data-icon="sliders"></span></button>
+  </nav>
+  <div class="main-col">
+  <div id="serverStatusBanner" class="server-status-banner view-hidden"></div>
   <header class="app-header">
-    <div class="app-brand">
-      <span class="app-logo">⬡</span>
-      <span class="app-name">SaveItUp</span>
-      <span class="app-tagline">Archive</span>
-    </div>
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="browse">Browse</button>
-      <button class="tab-btn" data-tab="tabs">Tabs</button>
-      <button class="tab-btn" data-tab="chat">Chat</button>
-      <button class="tab-btn" data-tab="settings">Settings</button>
-    </div>
+    <span class="section-label" id="sectionTitle">Browse</span>
+    <span class="app-name">SaveItUp</span>
   </header>
 
   <section id="browse-tab" class="tab-panel active">
@@ -45,6 +76,33 @@
       <button id="urlToMdBtn" type="button">
         <span class="icon-slot" data-icon="link"></span> URL to Markdown
       </button>
+      <button id="importBookmarksBtn" type="button">
+        <span class="icon-slot" data-icon="plus"></span> Import bookmarks
+      </button>
+    </div>
+    <div id="importBox" class="note-box view-hidden">
+      <label class="note-label">Import bookmarks (fetches + AI-cleans each page)</label>
+      <div class="note-actions">
+        <button id="importChromeBtn" class="secondary-btn" type="button">From Chrome</button>
+        <button id="importFileBtn" class="secondary-btn" type="button">From HTML file</button>
+        <input id="importFileInput" type="file" accept=".html,.htm" hidden />
+        <button id="importCloseBtn" class="secondary-btn" type="button">Close</button>
+      </div>
+      <div id="importPicker" class="import-picker view-hidden">
+        <div class="note-actions">
+          <button id="importPickAllBtn" class="secondary-btn" type="button">Toggle all</button>
+          <button id="importPickGoBtn" class="secondary-btn" type="button">Continue</button>
+        </div>
+        <div id="importPickList"></div>
+      </div>
+      <div id="importStatus" aria-live="polite" class="note-status"></div>
+      <div class="note-actions">
+        <button id="importStartBtn" class="secondary-btn view-hidden" type="button">Start</button>
+        <button id="importCancelBtn" class="secondary-btn view-hidden" type="button">Pause</button>
+        <button id="importRetryBtn" class="secondary-btn view-hidden" type="button">Retry failed</button>
+        <button id="importDiscardBtn" class="secondary-btn view-hidden" type="button">Discard job</button>
+      </div>
+      <ul id="importFailures"></ul>
     </div>
     <div id="noteComposer" class="note-box view-hidden">
       <label class="note-label"><span class="icon-slot" data-icon="note"></span> New note</label>
@@ -52,7 +110,7 @@
       <div class="note-actions">
         <button id="noteComposerCancel" class="secondary-btn" type="button">Cancel</button>
         <button id="noteComposerSave" class="secondary-btn" type="button">Save note</button>
-        <span id="noteComposerStatus" class="note-status"></span>
+        <span id="noteComposerStatus" aria-live="polite" class="note-status"></span>
       </div>
     </div>
     <div id="urlToMdBox" class="note-box view-hidden">
@@ -61,7 +119,7 @@
       <div class="note-actions">
         <button id="urlToMdCancel" class="secondary-btn" type="button">Cancel</button>
         <button id="urlToMdExtract" class="secondary-btn" type="button">Extract</button>
-        <span id="urlToMdStatus" class="note-status"></span>
+        <span id="urlToMdStatus" aria-live="polite" class="note-status"></span>
       </div>
       <div id="urlToMdResult" class="view-hidden">
         <div class="note-actions">
@@ -76,6 +134,7 @@
       <div class="search-field">
         <span class="icon-slot search-icon" data-icon="search"></span>
         <input id="search" type="text" placeholder="Search saved pages..." />
+        <span id="searchModeBadge" class="search-mode-badge view-hidden" title=""></span>
         <button id="clearSearch" class="clear-search-btn view-hidden" aria-label="Clear search">
           <span class="icon-slot" data-icon="close"></span>
         </button>
@@ -101,11 +160,31 @@
       <label class="filter-menu-label">Folder</label>
       <select id="folderActions">
         <option value="">Folders...</option>
-        <option value="__new__">+ New folder...</option>
+        <option value="__new__">+ New folder (use "A / B" to nest)...</option>
+        <option value="__rename__">Rename filtered folder...</option>
+        <option value="__delete__">Delete filtered folder...</option>
       </select>
+      <div class="export-menu-divider"></div>
+      <label class="filter-menu-label">Filter by folder</label>
+      <select id="folderFilter">
+        <option value="">All folders</option>
+      </select>
+      <label class="filter-menu-label">Site</label>
+      <input id="domainFilter" type="text" placeholder="e.g. youtube.com" />
+      <label class="filter-menu-label">Saved</label>
+      <select id="dateFilter">
+        <option value="">Any time</option>
+        <option value="today">Today</option>
+        <option value="week">This week</option>
+        <option value="month">This month</option>
+      </select>
+      <label class="filter-menu-checkbox"><input id="hasNoteFilter" type="checkbox" /> Has a note</label>
+      <label class="filter-menu-checkbox"><input id="hasHighlightFilter" type="checkbox" /> Has a highlight</label>
+      <button id="clearFiltersBtn" class="secondary-btn" type="button">Clear filters</button>
     </div>
     <div id="exportMenu" class="export-menu view-hidden">
       <button id="exportMarkdownBtn" type="button">Export as Markdown</button>
+      <button id="exportTextBtn" type="button">Export as Text</button>
       <button id="exportJsonBtn" type="button">Export as JSON</button>
     </div>
     <div id="resultsCount" class="results-count"></div>
@@ -144,84 +223,252 @@
       <input id="tabsShareLink" type="text" readonly />
       <button id="tabsCopyLinkBtn" class="secondary-btn" type="button">Copy</button>
     </div>
+
+    <div class="s-group-label"><span class="section-label">Devices</span></div>
+    <div class="dev-sync">
+      <label class="dev-toggle"><input id="deviceSyncToggle" type="checkbox" /> Sync this device's open tabs</label>
+      <div class="dev-name-row">
+        <input id="deviceNameInput" type="text" placeholder="Device name" aria-label="Device name" />
+        <button id="deviceNameSave" class="secondary-btn" type="button">Save</button>
+      </div>
+      <p class="s-hint">Off by default. When on, the titles and addresses of this browser's open tabs are stored in your own account so your other devices can open them. Incognito tabs are never synced.</p>
+      <div class="dev-actions">
+        <button id="sendTabsBtn" class="secondary-btn" type="button">Send selected tabs to&hellip;</button>
+        <button id="devicesRefreshBtn" class="icon-btn" type="button" aria-label="Refresh devices" title="Refresh devices"><span class="icon-slot" data-icon="refresh"></span></button>
+      </div>
+      <p id="deviceMsg" class="note-status" aria-live="polite"></p>
+    </div>
+    <div id="inboxBox" class="view-hidden">
+      <div class="s-group-label"><span class="section-label">Inbox</span></div>
+      <div id="inboxList" class="dev-list"></div>
+    </div>
+    <div id="devicesBox" class="view-hidden">
+      <div class="s-group-label"><span class="section-label">Other devices</span></div>
+      <div id="devicesList" class="dev-list"></div>
+    </div>
   </section>
 
   <section id="chat-tab" class="tab-panel">
-    <div id="chatMessages" class="chat-messages"></div>
-    <div class="chat-include-row">
-      <label class="chat-include-label">
+    <div class="chat-head">
+      <label class="chat-toggle" title="Send the page you're viewing as context">
         <input id="chatIncludeCurrentTab" type="checkbox" checked />
-        Include current tab
+        <span>Include current tab</span>
       </label>
+      <button id="chatClearBtn" class="secondary-btn chat-clear" type="button">New chat</button>
     </div>
-    <div class="chat-input-row">
-      <textarea id="chatInput" placeholder="Ask about your saved pages or this tab..."></textarea>
-      <button id="chatSendBtn" type="button" class="picker-btn">Send</button>
+    <div id="chatMessages" class="chat-messages"></div>
+    <div class="chat-composer">
+      <textarea id="chatInput" rows="1" placeholder="Ask about your saved pages or this tab..."></textarea>
+      <button id="chatSendBtn" type="button" class="chat-send" aria-label="Send">&#10148;</button>
     </div>
   </section>
 
   <section id="settings-tab" class="tab-panel">
-    <div class="settings-card">
-      <div class="account-row">
-        <span id="accountEmail"></span>
-        <button id="signOutBtn" type="button" class="secondary-btn">Sign out</button>
-      </div>
-      <details class="settings-disclosure">
-        <summary>Connection settings</summary>
+    <div class="s-status-card">
+      <span class="s-tile"><span class="icon-slot" data-icon="user"></span></span>
+      <span class="s-row-text"><span class="s-row-title">Account</span><span class="s-row-sub" id="accountEmail"></span></span>
+      <button id="signOutBtn" type="button" class="secondary-btn s-inline-btn">Sign out</button>
+    </div>
+
+    <div class="s-group-label"><span class="section-label">Connection</span></div>
+    <details class="settings-disclosure s-row">
+      <summary class="s-row-head">
+        <span class="s-tile"><span class="icon-slot" data-icon="server"></span></span>
+        <span class="s-row-text"><span class="s-row-title">Backend server</span><span class="s-row-sub">Used for saving pages, URL import and search</span></span>
+        <span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
         <label>Backend URL<input id="apiBase" type="text" placeholder="http://localhost:3001" /></label>
-      </details>
-      <div class="settings-actions">
-        <button id="testConnection" class="secondary-btn" type="button">Test connection</button>
-        <button id="saveSettings" type="button">Save settings</button>
+        <label>Public link URL (optional)<input id="publicBase" type="text" placeholder="https://your-server.onrender.com" /></label>
+        <p class="s-hint">Share links use this address so other people can open them. Leave empty to use the backend URL. It must reach the same server over the internet (a deployed server or a tunnel).</p>
+        <div class="s-actions">
+          <button id="saveSettings" type="button" class="picker-btn s-save">Save</button>
+          <button id="testConnection" class="secondary-btn" type="button">Test connection</button>
+        </div>
+        <p id="status" aria-live="polite"></p>
       </div>
-      <p id="status"></p>
+    </details>
+
+    <div class="s-group-label"><span class="section-label">Sync</span></div>
+    <details class="settings-disclosure s-row" id="keySyncRow">
+      <summary class="s-row-head"><span class="s-tile"><span class="icon-slot" data-icon="refresh"></span></span><span class="s-row-text"><span class="s-row-title">Sync keys and models</span><span class="s-row-sub" id="keySyncSub">Keep your keys and models on every device</span></span><span class="s-pill" id="keySyncPill">Off</span><span class="s-chevron" aria-hidden="true"></span></summary>
+      <div class="s-row-body" id="keySyncBody"></div>
+    </details>
+
+    <div class="s-group-label" id="aiProviderKeys-label"><span class="section-label">AI providers</span></div>
+    <p class="s-hint">Add a key, then assign it to a feature below. Keys are stored unencrypted in this browser profile and sent only to the provider.</p>
+    <div id="aiProviderKeys" class="s-list">
+    <details class="settings-disclosure s-row" data-provider="ollama">
+      <summary class="s-row-head">
+        <span class="s-tile">Ol</span>
+        <span class="s-row-text"><span class="s-row-title">Ollama</span><span class="s-row-sub">Local models, no key needed</span></span>
+        <span class="s-pill" data-pill>Not set</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
+        <label>Base URL<input class="provider-baseurl" type="text" placeholder="http://localhost:11434/v1" /></label><label>Default model<input class="provider-model" type="text" placeholder="llama3.1:8b" /></label>
+        <button class="picker-btn provider-save s-save" type="button">Save</button>
+      </div>
+    </details>
+    <details class="settings-disclosure s-row" data-provider="ollama_cloud">
+      <summary class="s-row-head">
+        <span class="s-tile">OC</span>
+        <span class="s-row-text"><span class="s-row-title">Ollama Cloud</span><span class="s-row-sub">Hosted open models</span></span>
+        <span class="s-pill" data-pill>Not set</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
+        <div class="api-key-row"><input class="provider-key" type="password" placeholder="API key" autocomplete="off" /></div><label>Base URL<input class="provider-baseurl" type="text" placeholder="https://ollama.com/v1" /></label><label>Default model<input class="provider-model" type="text" placeholder="gpt-oss:120b-cloud" /></label>
+        <button class="picker-btn provider-save s-save" type="button">Save</button>
+      </div>
+    </details>
+    <details class="settings-disclosure s-row" data-provider="openai">
+      <summary class="s-row-head">
+        <span class="s-tile">O</span>
+        <span class="s-row-text"><span class="s-row-title">OpenAI</span><span class="s-row-sub">GPT models and embeddings</span></span>
+        <span class="s-pill" data-pill>Not set</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
+        <div class="api-key-row"><input class="provider-key" type="password" placeholder="API key" autocomplete="off" /></div><label>Default model<input class="provider-model" type="text" placeholder="gpt-4o-mini" /></label>
+        <button class="picker-btn provider-save s-save" type="button">Save</button>
+      </div>
+    </details>
+    <details class="settings-disclosure s-row" data-provider="anthropic">
+      <summary class="s-row-head">
+        <span class="s-tile">A</span>
+        <span class="s-row-text"><span class="s-row-title">Anthropic</span><span class="s-row-sub">Claude models</span></span>
+        <span class="s-pill" data-pill>Not set</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
+        <div class="api-key-row"><input class="provider-key" type="password" placeholder="API key" autocomplete="off" /></div><label>Default model<input class="provider-model" type="text" placeholder="claude-3-5-haiku-20241022" /></label>
+        <button class="picker-btn provider-save s-save" type="button">Save</button>
+      </div>
+    </details>
+    <details class="settings-disclosure s-row" data-provider="gemini">
+      <summary class="s-row-head">
+        <span class="s-tile">G</span>
+        <span class="s-row-text"><span class="s-row-title">Gemini</span><span class="s-row-sub">Google models and embeddings</span></span>
+        <span class="s-pill" data-pill>Not set</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
+        <div class="api-key-row"><input class="provider-key" type="password" placeholder="API key" autocomplete="off" /></div><label>Default model<input class="provider-model" type="text" placeholder="gemini-3.5-flash" /></label>
+        <button class="picker-btn provider-save s-save" type="button">Save</button>
+      </div>
+    </details>
+    <details class="settings-disclosure s-row" data-provider="openrouter">
+      <summary class="s-row-head">
+        <span class="s-tile">OR</span>
+        <span class="s-row-text"><span class="s-row-title">OpenRouter</span><span class="s-row-sub">One key, many models (free tiers)</span></span>
+        <span class="s-pill" data-pill>Not set</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
+        <div class="api-key-row"><input class="provider-key" type="password" placeholder="API key" autocomplete="off" /></div><label>Default model<input class="provider-model" type="text" placeholder="e.g. nvidia/nemotron-3-ultra-550b-a55b:free" /></label>
+        <button class="picker-btn provider-save s-save" type="button">Save</button>
+      </div>
+    </details>
+    <details class="settings-disclosure s-row" data-provider="nvidia">
+      <summary class="s-row-head">
+        <span class="s-tile">N</span>
+        <span class="s-row-text"><span class="s-row-title">NVIDIA NIM</span><span class="s-row-sub">Free hosted Llama / Nemotron</span></span>
+        <span class="s-pill" data-pill>Not set</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
+        <div class="api-key-row"><input class="provider-key" type="password" placeholder="API key" autocomplete="off" /></div><label>Base URL<input class="provider-baseurl" type="text" placeholder="https://integrate.api.nvidia.com/v1" /></label><label>Default model<input class="provider-model" type="text" placeholder="meta/llama-3.3-70b-instruct" /></label>
+        <button class="picker-btn provider-save s-save" type="button">Save</button>
+      </div>
+    </details>
     </div>
 
-    <div class="settings-card" id="aiRoleSettings">
-      <details class="settings-disclosure" data-role="cleanup">
-        <summary>Cleanup AI</summary>
+    <div class="s-group-label"><span class="section-label">AI features</span></div>
+    <p id="aiFeaturesEmptyHint" class="s-hint s-hint--warn view-hidden">No provider keys saved yet — add one above first.</p>
+    <div id="aiRoleSettings" class="s-list">
+    <details class="settings-disclosure s-row" data-role="cleanup">
+      <summary class="s-row-head">
+        <span class="s-tile"><span class="icon-slot" data-icon="sparkles"></span></span>
+        <span class="s-row-text"><span class="s-row-title">Cleanup AI</span><span class="s-row-sub"><span data-role-sub>Tidies saved pages into clean markdown</span></span></span>
+        <span class="s-pill" data-pill>Off</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
         <label>Provider<select class="role-provider"></select></label>
         <label>Model<input class="role-model" type="text" placeholder="(use provider default)" /></label>
-        <p class="role-hint"></p>
-        <button class="secondary-btn role-save" type="button">Save</button>
-      </details>
-      <details class="settings-disclosure" data-role="categorize">
-        <summary>Categorize AI</summary>
+        <div class="s-actions">
+          <button class="picker-btn role-save s-save" type="button">Save</button>
+          <button class="secondary-btn role-test" type="button">Test model</button>
+        </div>
+      </div>
+    </details>
+    <details class="settings-disclosure s-row" data-role="summarize">
+      <summary class="s-row-head">
+        <span class="s-tile"><span class="icon-slot" data-icon="sparkles"></span></span>
+        <span class="s-row-text"><span class="s-row-title">Summarize AI</span><span class="s-row-sub"><span data-role-sub>Writes page summaries</span></span></span>
+        <span class="s-pill" data-pill>Off</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
         <label>Provider<select class="role-provider"></select></label>
         <label>Model<input class="role-model" type="text" placeholder="(use provider default)" /></label>
-        <p class="role-hint"></p>
-        <button class="secondary-btn role-save" type="button">Save</button>
-      </details>
-      <details class="settings-disclosure" data-role="summarize">
-        <summary>Summarize AI</summary>
+        <div class="s-actions">
+          <button class="picker-btn role-save s-save" type="button">Save</button>
+          <button class="secondary-btn role-test" type="button">Test model</button>
+        </div>
+      </div>
+    </details>
+    <details class="settings-disclosure s-row" data-role="chat">
+      <summary class="s-row-head">
+        <span class="s-tile"><span class="icon-slot" data-icon="sparkles"></span></span>
+        <span class="s-row-text"><span class="s-row-title">Chat AI</span><span class="s-row-sub"><span data-role-sub>Chat, explain and translate</span></span></span>
+        <span class="s-pill" data-pill>Off</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
         <label>Provider<select class="role-provider"></select></label>
         <label>Model<input class="role-model" type="text" placeholder="(use provider default)" /></label>
-        <p class="role-hint"></p>
-        <button class="secondary-btn role-save" type="button">Save</button>
-      </details>
-      <details class="settings-disclosure" data-role="chat">
-        <summary>Chat AI</summary>
+        <div class="s-actions">
+          <button class="picker-btn role-save s-save" type="button">Save</button>
+          <button class="secondary-btn role-test" type="button">Test model</button>
+        </div>
+      </div>
+    </details>
+    <details class="settings-disclosure s-row" data-role="embeddings">
+      <summary class="s-row-head">
+        <span class="s-tile"><span class="icon-slot" data-icon="sparkles"></span></span>
+        <span class="s-row-text"><span class="s-row-title">Embeddings AI</span><span class="s-row-sub"><span data-role-sub>Meaning-based search and chat retrieval</span></span></span>
+        <span class="s-pill" data-pill>Off</span><span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
         <label>Provider<select class="role-provider"></select></label>
         <label>Model<input class="role-model" type="text" placeholder="(use provider default)" /></label>
-        <p class="role-hint"></p>
-        <button class="secondary-btn role-save" type="button">Save</button>
-      </details>
-      <details class="settings-disclosure" data-role="embeddings">
-        <summary>Embeddings AI</summary>
-        <label>Provider<select class="role-provider"></select></label>
-        <label>Model<input class="role-model" type="text" placeholder="(use provider default)" /></label>
-        <p class="role-hint"></p>
-        <button class="secondary-btn role-save" type="button">Save</button>
-      </details>
+        <div class="s-actions">
+          <button class="picker-btn role-save s-save" type="button">Save</button>
+          <button class="secondary-btn role-test" type="button">Test model</button>
+        </div>
+      </div>
+    </details>
     </div>
 
-    <div class="settings-card">
-      <details class="settings-disclosure" id="aiErrorsDisclosure">
-        <summary><span class="icon-slot" data-icon="alertCircle"></span> AI errors</summary>
+    <div class="s-group-label"><span class="section-label">Library</span></div>
+    <div class="s-list">
+      <div class="s-action-row">
+        <span class="s-tile"><span class="icon-slot" data-icon="download"></span></span>
+        <span class="s-row-text"><span class="s-row-title">Export everything</span><span class="s-row-sub">All saves and folders as one JSON file</span></span>
+        <button id="exportAllBtn" class="secondary-btn s-inline-btn" type="button">Export</button>
+      </div>
+      <div class="s-action-row">
+        <span class="s-tile"><span class="icon-slot" data-icon="sparkles"></span></span>
+        <span class="s-row-text"><span class="s-row-title">Embed missing pages</span><span class="s-row-sub">Index older saves for semantic search and chat</span></span>
+        <button id="reembedBtn" class="secondary-btn s-inline-btn" type="button">Run</button>
+      </div>
+      <p id="libraryToolsStatus" aria-live="polite" class="note-status"></p>
+    </div>
+
+    <div class="s-group-label"><span class="section-label">Diagnostics</span></div>
+    <details class="settings-disclosure s-row" id="aiErrorsDisclosure">
+      <summary class="s-row-head">
+        <span class="s-tile"><span class="icon-slot" data-icon="alertCircle"></span></span>
+        <span class="s-row-text"><span class="s-row-title">AI errors</span><span class="s-row-sub">Recent failed AI calls</span></span>
+        <span class="s-chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="s-row-body">
         <div id="aiErrorsList" class="ai-errors-list"></div>
         <button id="clearAiErrors" class="secondary-btn" type="button">Clear</button>
-      </details>
-    </div>
+      </div>
+    </details>
   </section>
 
   <section id="detail-view" class="view-hidden">
@@ -238,35 +485,43 @@
     <h2 id="detail-title-row" class="detail-title-row">
       <img id="detail-favicon" class="site-favicon" alt="" />
       <span id="detail-title"></span>
+      <button id="editTitleBtn" class="icon-btn" type="button" aria-label="Edit title" title="Edit title">
+        <span class="icon-slot" data-icon="edit"></span>
+      </button>
     </h2>
+    <div id="detail-title-edit" class="note-box view-hidden">
+      <input id="detail-title-input" type="text" />
+      <div class="note-actions">
+        <button id="saveTitleBtn" class="secondary-btn" type="button">Save</button>
+        <button id="cancelTitleBtn" class="secondary-btn" type="button">Cancel</button>
+        <span id="titleStatus" aria-live="polite" class="note-status"></span>
+      </div>
+    </div>
     <div id="detail-meta" class="item-meta"></div>
     <div id="detail-folder"></div>
     <div id="detail-note" class="note-box">
-      <label class="note-label"><span class="icon-slot" data-icon="note"></span> Note</label>
-      <textarea id="detail-note-input" placeholder="Add a note..."></textarea>
+      <textarea id="detail-note-input" rows="1" placeholder="Add a note..." aria-label="Note"></textarea>
       <div class="note-actions">
         <button id="saveNoteBtn" class="secondary-btn" type="button">Save note</button>
-        <span id="noteStatus" class="note-status"></span>
+        <span id="noteStatus" aria-live="polite" class="note-status"></span>
       </div>
     </div>
     <div class="detail-actions">
-      <button id="openOriginalBtn" class="secondary-btn">
-        <span class="icon-slot" data-icon="externalLink"></span> Open original page
+      <button id="openOriginalBtn" class="picker-btn detail-primary">
+        <span class="icon-slot" data-icon="externalLink"></span> Open original
       </button>
-      <button id="contentToggleBtn" class="secondary-btn">
+      <button id="pinBtn" class="icon-btn" aria-label="Pin" title="Pin"></button>
+      <button id="contentToggleBtn" class="secondary-btn detail-toggle">
         <span class="icon-slot" data-icon="note"></span> Original
-      </button>
-      <button id="pinBtn" class="secondary-btn">
-        <span class="icon-slot" data-icon="star"></span> Pin
-      </button>
-      <button id="deleteBtn" class="danger-btn">
-        <span class="icon-slot" data-icon="trash"></span> Delete
       </button>
       <button id="detailMoreBtn" class="icon-btn" aria-label="More actions" title="More actions">
         <span class="icon-slot" data-icon="moreHorizontal"></span>
       </button>
     </div>
     <div id="detailMoreMenu" class="export-menu view-hidden">
+      <button id="sharePageBtn" type="button">
+        <span class="icon-slot" data-icon="link"></span> Get share link
+      </button>
       <button id="copyMarkdownBtn" type="button">
         <span class="icon-slot" data-icon="copy"></span> Copy markdown
       </button>
@@ -276,15 +531,32 @@
       <button id="recleanBtn" type="button">
         <span class="icon-slot" data-icon="refresh"></span> Re-clean
       </button>
+      <div class="export-menu-divider"></div>
+      <button id="downloadMdBtn" type="button">
+        <span class="icon-slot" data-icon="download"></span> Download as Markdown
+      </button>
+      <button id="downloadTextBtn" type="button">
+        <span class="icon-slot" data-icon="download"></span> Download as Text
+      </button>
+      <button id="downloadDocBtn" type="button">
+        <span class="icon-slot" data-icon="download"></span> Download as Word (.doc)
+      </button>
+      <button id="downloadPdfBtn" type="button">
+        <span class="icon-slot" data-icon="download"></span> Download as PDF...
+      </button>
+      <div class="export-menu-divider"></div>
+      <button id="deleteBtn" type="button" class="menu-danger">
+        <span class="icon-slot" data-icon="trash"></span> Delete
+      </button>
     </div>
-    <div id="recleanStatus" class="reclean-status view-hidden"></div>
+    <div id="recleanStatus" aria-live="polite" class="reclean-status view-hidden"></div>
     <div id="transformBox" class="note-box view-hidden">
       <label class="note-label"><span class="icon-slot" data-icon="sparkles"></span> Transform</label>
       <textarea id="transformInput" placeholder="e.g. Summarize as bullet points"></textarea>
       <div class="note-actions">
         <button id="transformCancel" class="secondary-btn" type="button">Cancel</button>
         <button id="transformRun" class="secondary-btn" type="button">Run</button>
-        <span id="transformStatus" class="note-status"></span>
+        <span id="transformStatus" aria-live="polite" class="note-status"></span>
       </div>
       <div id="transformResult" class="view-hidden">
         <div class="note-actions">
@@ -298,6 +570,7 @@
     </div>
     <div id="detail-body"></div>
   </section>
+  </div>
   </div>
 
   <script src="sidepanel.js" type="module"></script>

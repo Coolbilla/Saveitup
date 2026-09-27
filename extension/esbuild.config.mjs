@@ -7,8 +7,9 @@ mkdirSync(outdir, { recursive: true });
 
 await build({
   define: {
-    "process.env.CLERK_PUBLISHABLE_KEY": JSON.stringify(process.env.CLERK_PUBLISHABLE_KEY || ""),
-    "process.env.SAVEITUP_DEFAULT_API_BASE": JSON.stringify(process.env.SAVEITUP_DEFAULT_API_BASE || "")
+    "process.env.SAVEITUP_DEFAULT_API_BASE": JSON.stringify(process.env.SAVEITUP_DEFAULT_API_BASE || ""),
+    "process.env.SUPABASE_URL": JSON.stringify(process.env.SUPABASE_URL || ""),
+    "process.env.SUPABASE_ANON_KEY": JSON.stringify(process.env.SUPABASE_ANON_KEY || "")
   },
   entryPoints: {
     background: "src/background.ts",
@@ -25,8 +26,7 @@ await build({
     "content/note-badges": "src/content/note-badges.ts",
     "content/open-session": "src/content/open-session.ts",
     "content/explain-selection": "src/content/explain-selection.ts",
-    "sidepanel/sidepanel": "src/sidepanel/sidepanel.ts",
-    "offscreen/offscreen": "src/offscreen/offscreen.ts"
+    "sidepanel/sidepanel": "src/sidepanel/sidepanel.ts"
   },
   bundle: true,
   format: "iife",
@@ -40,5 +40,3 @@ if (existsSync("icons")) cpSync("icons", `${outdir}/icons`, { recursive: true })
 if (existsSync("fonts")) cpSync("fonts", `${outdir}/fonts`, { recursive: true });
 cpSync("src/sidepanel/sidepanel.html", `${outdir}/sidepanel/sidepanel.html`);
 cpSync("src/sidepanel/sidepanel.css", `${outdir}/sidepanel/sidepanel.css`);
-mkdirSync(`${outdir}/offscreen`, { recursive: true });
-cpSync("src/offscreen/offscreen.html", `${outdir}/offscreen/offscreen.html`);

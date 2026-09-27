@@ -1,0 +1,11 @@
+{
+  "appId": "app.saveitup.mobile",
+  "appName": "SaveItUp",
+  "webDir": "dist",
+  "backgroundColor": "#0b0d10",
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "CapacitorHttp": { "enabled": true },
+    "StatusBar": { "style": "DARK", "backgroundColor": "#0b0d10" }
+  }
+}

@@ -1,4 +1,5 @@
 import { getRoleConfig, recordAIError } from "./ai-config.js";
+import { callProvider } from "./providers.js";
 
 interface CategorizeInput {
   title: string;
@@ -24,6 +25,14 @@ function cleanFolderName(raw: string): string {
   return raw.trim().replace(/^["'`]+|["'`]+$/g, "").replace(/\.$/, "").slice(0, 60);
 }
 
+// Reasoning models sometimes answer with their chain of thought ("The user wants me to...") instead
+// of a name; that must never become a folder. Accept only short, name-like replies.
+function isPlausibleFolderName(name: string): boolean {
+  if (!name || name.length > 40 || /[\n:]/.test(name)) return false;
+  if (name.split(/\s+/).length > 5) return false;
+  return !/^(the user|user |i |i'|okay|ok,|let me|we need|we should|first|this is|so )/i.test(name);
+}
+
 const DOMAIN_FOLDER_OVERRIDES: Record<string, string> = {
   "youtube.com": "YouTube",
   "github.com": "GitHub",
@@ -46,129 +55,6 @@ function buildFallbackFolder(domain: string): string {
   return titleCaseDomain(domain);
 }
 
-async function callOpenAICompatible(opts: {
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  prompt: string;
-  extraHeaders?: Record<string, string>;
-  noSystemRole?: boolean;
-  maxPromptChars?: number;
-}): Promise<string> {
-  const prompt = opts.maxPromptChars ? opts.prompt.slice(0, opts.maxPromptChars) : opts.prompt;
-  const messages = opts.noSystemRole
-    ? [{ role: "user", content: `${SYSTEM_PROMPT}\n\n${prompt}` }]
-    : [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: prompt }
-      ];
-  const res = await fetch(`${opts.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${opts.apiKey}`,
-      ...opts.extraHeaders
-    },
-    body: JSON.stringify({
-      model: opts.model,
-      messages
-    })
-  });
-  if (!res.ok) throw new Error(`LLM request failed: ${res.status} ${await res.text()}`);
-  const data = (await res.json()) as any;
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("LLM response had no content");
-  return content;
-}
-
-async function callOllama(prompt: string, model?: string): Promise<string> {
-  return callOpenAICompatible({
-    baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
-    apiKey: "ollama",
-    model: model || process.env.OLLAMA_MODEL || "llama3.1:8b",
-    prompt
-  });
-}
-
-async function callOllamaCloud(prompt: string, apiKey: string, model?: string): Promise<string> {
-  return callOpenAICompatible({
-    baseUrl: process.env.OLLAMA_CLOUD_BASE_URL || "https://ollama.com/v1",
-    apiKey,
-    model: model || process.env.OLLAMA_CLOUD_MODEL || "gpt-oss:120b-cloud",
-    prompt
-  });
-}
-
-async function callOpenAI(prompt: string, apiKey: string, model?: string): Promise<string> {
-  return callOpenAICompatible({
-    baseUrl: "https://api.openai.com/v1",
-    apiKey,
-    model: model || process.env.OPENAI_MODEL || "gpt-4o-mini",
-    prompt
-  });
-}
-
-async function callOpenRouter(prompt: string, apiKey: string, model?: string): Promise<string> {
-  return callOpenAICompatible({
-    baseUrl: "https://openrouter.ai/api/v1",
-    apiKey,
-    model: model || process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550b-a55b:free",
-    prompt
-  });
-}
-
-async function callNvidia(prompt: string, apiKey: string, model?: string): Promise<string> {
-  return callOpenAICompatible({
-    baseUrl: process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1",
-    apiKey,
-    model: model || process.env.NVIDIA_MODEL || "mistralai/mistral-7b-instruct-v0.3",
-    prompt
-  });
-}
-
-async function callAnthropic(prompt: string, apiKey: string, modelOverride?: string): Promise<string> {
-  const model = modelOverride || process.env.ANTHROPIC_MODEL || "claude-3-5-haiku-20241022";
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 32,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: prompt }]
-    })
-  });
-  if (!res.ok) throw new Error(`Anthropic request failed: ${res.status} ${await res.text()}`);
-  const data = (await res.json()) as any;
-  const content = data.content?.[0]?.text;
-  if (!content) throw new Error("Anthropic response had no content");
-  return content;
-}
-
-async function callGemini(prompt: string, apiKey: string, modelOverride?: string): Promise<string> {
-  const model = modelOverride || process.env.GEMINI_MODEL || "gemini-3.5-flash";
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    }
-  );
-  if (!res.ok) throw new Error(`Gemini request failed: ${res.status} ${await res.text()}`);
-  const data = (await res.json()) as any;
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!content) throw new Error("Gemini response had no content");
-  return content;
-}
-
 export async function suggestFolder(userId: string, input: CategorizeInput, existingFolders: string[]): Promise<string> {
   const dbConfig = await getRoleConfig(userId, "categorize");
   const chain = dbConfig?.chain.length
@@ -179,27 +65,9 @@ export async function suggestFolder(userId: string, input: CategorizeInput, exis
   for (const pair of chain) {
     const { provider, model } = pair;
     try {
-      if (provider === "ollama") {
-        return cleanFolderName(await callOllama(prompt, model || undefined));
-      }
-      if (provider === "ollama_cloud" && process.env.OLLAMA_CLOUD_API_KEY) {
-        return cleanFolderName(await callOllamaCloud(prompt, process.env.OLLAMA_CLOUD_API_KEY, model || undefined));
-      }
-      if (provider === "anthropic" && process.env.ANTHROPIC_API_KEY) {
-        return cleanFolderName(await callAnthropic(prompt, process.env.ANTHROPIC_API_KEY, model || undefined));
-      }
-      if (provider === "openai" && process.env.OPENAI_API_KEY) {
-        return cleanFolderName(await callOpenAI(prompt, process.env.OPENAI_API_KEY, model || undefined));
-      }
-      if (provider === "gemini" && process.env.GEMINI_API_KEY) {
-        return cleanFolderName(await callGemini(prompt, process.env.GEMINI_API_KEY, model || undefined));
-      }
-      if (provider === "openrouter" && process.env.OPENROUTER_API_KEY) {
-        return cleanFolderName(await callOpenRouter(prompt, process.env.OPENROUTER_API_KEY, model || undefined));
-      }
-      if (provider === "nvidia" && process.env.NVIDIA_API_KEY) {
-        return cleanFolderName(await callNvidia(prompt, process.env.NVIDIA_API_KEY, model || undefined));
-      }
+      const result = await callProvider(provider, SYSTEM_PROMPT, prompt, { model: model || undefined, maxTokens: 200 });
+      const name = result ? cleanFolderName(result) : "";
+      if (isPlausibleFolderName(name)) return name;
     } catch (err) {
       console.error(`[saveitup] AI categorize failed on provider "${provider}"`, err);
       recordAIError(userId, "categorize", provider, model, err);

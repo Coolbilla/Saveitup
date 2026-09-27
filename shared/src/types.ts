@@ -12,6 +12,8 @@ export interface SavedPagePayload {
   summary?: string | null;
   folderId?: number | null;
   cleanedContent?: string | null;
+  /** Set when the capture is already in a fixed, cleaned format (the server then skips AI cleanup). */
+  format?: "youtube-v1";
 }
 
 export interface SavedPageRecord extends SavedPagePayload {
@@ -23,6 +25,7 @@ export interface SavedPageRecord extends SavedPagePayload {
 export interface Folder {
   id: number;
   name: string;
+  parentId: number | null;
 }
 
 export interface InsertPageResult {
@@ -76,9 +79,17 @@ export interface ChatRequest {
   currentPage?: ChatCurrentPage | null;
 }
 
+export interface ChatSource {
+  id: number | null; // null = the current tab (not a saved page)
+  title: string;
+  url: string;
+  domain: string;
+}
+
 export interface ChatResponse {
   reply: string;
   sourceIds: number[];
+  sources: ChatSource[];
 }
 
 export interface ExplainRequest {

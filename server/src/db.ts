@@ -8,7 +8,7 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set");
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 function toRecord(row: any): SavedPageRecord {
   return {
@@ -31,7 +31,19 @@ function toRecord(row: any): SavedPageRecord {
   };
 }
 
+async function assertFolderOwnership(userId: string, folderId: number): Promise<void> {
+  const { data, error } = await supabase
+    .from("folders")
+    .select("id")
+    .eq("id", folderId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("folder not found");
+}
+
 export async function insertPage(userId: string, payload: SavedPagePayload): Promise<{ id: number; duplicateCount: number }> {
+  if (payload.folderId != null) await assertFolderOwnership(userId, payload.folderId);
   const { data, error } = await supabase
     .from("saved_pages")
     .insert({
@@ -95,7 +107,7 @@ export async function listPages(
     offset?: number;
     domain?: string;
     q?: string;
-    folderId?: number;
+    folderIds?: number[];
   }
 ): Promise<SavedPageSummary[]> {
   const embeddingProvider = (process.env.EMBEDDING_PROVIDER || "none").toLowerCase();
@@ -109,7 +121,7 @@ export async function listPages(
 
       let query = supabase.from("saved_pages").select(SUMMARY_COLUMNS).eq("user_id", userId).in("id", orderedIds);
       if (opts.domain) query = query.eq("domain", opts.domain);
-      if (opts.folderId !== undefined) query = query.eq("folder_id", opts.folderId);
+      if (opts.folderIds && opts.folderIds.length > 0) query = query.in("folder_id", opts.folderIds);
 
       const { data, error } = await query;
       if (error) throw new Error(error.message);
@@ -128,7 +140,7 @@ export async function listPages(
     .range(opts.offset ?? 0, (opts.offset ?? 0) + (opts.limit ?? 50) - 1);
 
   if (opts.domain) query = query.eq("domain", opts.domain);
-  if (opts.folderId !== undefined) query = query.eq("folder_id", opts.folderId);
+  if (opts.folderIds && opts.folderIds.length > 0) query = query.in("folder_id", opts.folderIds);
   if (opts.q) {
     query = query.textSearch("search_vector", opts.q, { type: "websearch" });
   }
@@ -149,6 +161,8 @@ export async function updatePage(
   id: number,
   fields: { noteText?: string; pinned?: boolean; folderId?: number | null }
 ): Promise<SavedPageRecord | null> {
+  if (fields.folderId != null) await assertFolderOwnership(userId, fields.folderId);
+
   const update: Record<string, unknown> = {};
   if (fields.noteText !== undefined) update.note_text = fields.noteText;
   if (fields.pinned !== undefined) update.pinned = fields.pinned;
@@ -204,32 +218,6 @@ export async function matchSavedPages(userId: string, queryEmbedding: number[], 
   return (data ?? []).map((row: { id: number }) => row.id);
 }
 
-export async function getPagesByUrl(
-  userId: string,
-  url: string
-): Promise<Array<{ id: number; noteText: string; elementSelector: string; highlightText: string | null }>> {
-  const { data, error } = await supabase
-    .from("saved_pages")
-    .select("id, note_text, element_selector, highlight_text")
-    .eq("url", url)
-    .eq("user_id", userId)
-    .not("note_text", "is", null)
-    .not("element_selector", "is", null);
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    noteText: row.note_text,
-    elementSelector: row.element_selector,
-    highlightText: row.highlight_text
-  }));
-}
-
-export async function deletePage(userId: string, id: number): Promise<boolean> {
-  const { data, error } = await supabase.from("saved_pages").delete().eq("id", id).eq("user_id", userId).select("id");
-  if (error) throw new Error(error.message);
-  return (data ?? []).length > 0;
-}
-
 export async function createTabSession(userId: string, tabs: TabSessionTab[]): Promise<{ id: string }> {
   const { data, error } = await supabase.from("tab_sessions").insert({ tabs, user_id: userId }).select("id").single();
   if (error) throw new Error(error.message);
@@ -249,31 +237,69 @@ export async function getTabSession(id: string): Promise<TabSession | null> {
   return data ? { id: data.id, tabs: data.tabs, createdAt: data.created_at } : null;
 }
 
+// Ownership of the page is verified by the caller (getPage(userId, pageId) must have
+// already succeeded) before this is called — this just records the share.
+export async function createPageShare(userId: string, pageId: number): Promise<{ id: string }> {
+  const { data, error } = await supabase
+    .from("page_shares")
+    .insert({ page_id: pageId, user_id: userId })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return { id: data.id };
+}
+
+// Deliberately NOT scoped by user, same as getTabSession: share links are intentionally
+// public to anyone with the link, regardless of who's signed in.
+export async function getSharedPage(shareId: string): Promise<SavedPageRecord | null> {
+  const { data: share, error: shareError } = await supabase
+    .from("page_shares")
+    .select("page_id")
+    .eq("id", shareId)
+    .maybeSingle();
+  if (shareError) throw new Error(shareError.message);
+  if (!share) return null;
+  const { data: page, error: pageError } = await supabase.from("saved_pages").select("*").eq("id", share.page_id).maybeSingle();
+  if (pageError) throw new Error(pageError.message);
+  return page ? toRecord(page) : null;
+}
+
 export async function listFolders(userId: string): Promise<Folder[]> {
   const { data, error } = await supabase
     .from("folders")
-    .select("id, name")
+    .select("id, name, parent_id")
     .eq("user_id", userId)
     .order("name", { ascending: true });
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data ?? []).map(toFolder);
+}
+
+function toFolder(row: { id: number; name: string; parent_id: number | null }): Folder {
+  return { id: row.id, name: row.name, parentId: row.parent_id ?? null };
 }
 
 export async function createFolder(userId: string, name: string): Promise<Folder> {
-  const { data, error } = await supabase.from("folders").insert({ name, user_id: userId }).select("id, name").single();
+  const { data, error } = await supabase
+    .from("folders")
+    .insert({ name, user_id: userId })
+    .select("id, name, parent_id")
+    .single();
   if (error) throw new Error(error.message);
-  return data;
+  return toFolder(data);
 }
 
+// AI auto-categorize files into ROOT folders only — nesting is something the user builds by
+// hand (or via bookmark import), so a name match here must not grab a same-named subfolder.
 export async function findOrCreateFolder(userId: string, name: string): Promise<Folder> {
   const { data: existing, error: findError } = await supabase
     .from("folders")
-    .select("id, name")
+    .select("id, name, parent_id")
     .eq("name", name)
     .eq("user_id", userId)
+    .is("parent_id", null)
     .maybeSingle();
   if (findError) throw new Error(findError.message);
-  if (existing) return existing;
+  if (existing) return toFolder(existing);
   return createFolder(userId, name);
 }
 
@@ -288,13 +314,6 @@ export async function getUserRoleConfig(userId: string, role: string): Promise<{
   return data ? { chain: data.chain } : null;
 }
 
-export async function setUserRoleConfig(userId: string, role: string, chain: unknown[]): Promise<void> {
-  const { error } = await supabase
-    .from("user_ai_settings")
-    .upsert({ user_id: userId, role, chain, updated_at: new Date().toISOString() });
-  if (error) throw new Error(error.message);
-}
-
 export async function recordAIErrorRow(
   userId: string,
   role: string,
@@ -306,26 +325,3 @@ export async function recordAIErrorRow(
   if (error) throw new Error(error.message);
 }
 
-export async function listAIErrorRows(
-  userId: string
-): Promise<Array<{ timestamp: string; role: string; provider: string; model: string; message: string }>> {
-  const { data, error } = await supabase
-    .from("ai_error_log")
-    .select("role, provider, model, message, created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(50);
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((row) => ({
-    timestamp: row.created_at,
-    role: row.role,
-    provider: row.provider,
-    model: row.model,
-    message: row.message
-  }));
-}
-
-export async function clearAIErrorRows(userId: string): Promise<void> {
-  const { error } = await supabase.from("ai_error_log").delete().eq("user_id", userId);
-  if (error) throw new Error(error.message);
-}
