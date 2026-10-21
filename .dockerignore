@@ -2,7 +2,8 @@
 **/dist
 .git
 .serena
-extension
+extension/*
+!extension/package.json
 web/android
 *.apk
 **/.env
