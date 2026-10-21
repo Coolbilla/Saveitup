@@ -1,0 +1,16 @@
+services:
+  api:
+    build: { context: ., dockerfile: Dockerfile.server }
+    env_file: server/.env
+    restart: unless-stopped
+    ports: ["127.0.0.1:3001:3001"]
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        VITE_API_BASE: ${VITE_API_BASE:-}   # e.g. https://saveitup.example.com/api
+    restart: unless-stopped
+    ports: ["127.0.0.1:8080:80"]
